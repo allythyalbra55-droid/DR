@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0d6efd">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>نظام حجز العيادة</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; -webkit-tap-highlight-color: transparent; }
+  body { background: #f0f4f8; padding: 12px; min-height: 100vh; }
+  .container { max-width: 1100px; margin: 0 auto; }
+
+  header {
+    background: linear-gradient(135deg, #0d6efd, #0a58ca);
+    color: white; padding: 20px 15px; border-radius: 15px;
+    text-align: center; margin-bottom: 15px;
+    box-shadow: 0 5px 15px rgba(13,110,253,.3);
+  }
+  header h1 { font-size: 22px; margin-bottom: 5px; }
+  header p { opacity: .9; font-size: 13px; }
+  @media(min-width:768px){ header h1{font-size:28px;} header p{font-size:15px;} }
+
+  /* شريط رقم العيادة */
+  .clinic-bar {
+    background: white; padding: 12px 15px; border-radius: 12px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.06); margin-bottom: 15px;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .clinic-bar label { font-size: 13px; font-weight: bold; color: #555; }
+  .clinic-bar input {
+    flex: 1; padding: 10px; border: 2px solid #e3e8ef; border-radius: 8px;
+    font-size: 14px; min-width: 150px; outline: none;
+  }
+  .clinic-bar input:focus { border-color: #0d6efd; }
+  .clinic-bar .save-btn {
+    padding: 10px 16px; border: none; border-radius: 8px;
+    background: #198754; color: white; font-weight: bold; cursor: pointer;
+    font-size: 13px;
+  }
+  .clinic-bar .save-btn:active { background: #146c43; }
+
+  /* إحصائيات */
+  .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
+  @media(min-width:768px){ .stats { grid-template-columns: repeat(4, 1fr); gap: 15px; } }
+  .stat-card {
+    background: white; padding: 14px; border-radius: 12px; text-align: center;
+    box-shadow: 0 3px 10px rgba(0,0,0,.06);
+  }
+  .stat-card .num { font-size: 24px; font-weight: bold; color: #0d6efd; }
+  .stat-card .label { font-size: 12px; color: #666; margin-top: 4px; }
+  .stat-card.orange .num { color: #fd7e14; }
+  .stat-card.green .num { color: #198754; }
+  @media(min-width:768px){ .stat-card .num{font-size:32px;} .stat-card .label{font-size:14px;} }
+
+  /* تبويبات */
+  .tabs { display: flex; gap: 8px; margin-bottom: 15px; }
+  .tab-btn {
+    flex: 1; padding: 13px 8px; border: none; border-radius: 12px;
+    background: white; color: #333; font-size: 14px; font-weight: bold;
+    cursor: pointer; box-shadow: 0 3px 10px rgba(0,0,0,.06);
+    transition: .2s;
+  }
+  .tab-btn.active { background: #0d6efd; color: white; }
+  .tab-btn:hover:not(.active) { background: #e7f1ff; }
+  @media(min-width:768px){ .tab-btn{font-size:16px; padding:14px;} }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* نموذج */
+  .form-box {
+    background: white; padding: 16px; border-radius: 12px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.06); margin-bottom: 15px;
+  }
+  .form-box h2 { font-size: 16px; margin-bottom: 12px; color: #0d6efd; }
+  .form-row { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 10px; }
+  @media(min-width:600px){ .form-row { grid-template-columns: 1fr 1fr; } }
+  input, select {
+    width: 100%; padding: 13px; border: 2px solid #e3e8ef; border-radius: 10px;
+    font-size: 16px; outline: none; transition: .2s; background: #fafbfc;
+    -webkit-appearance: none; appearance: none;
+  }
+  input:focus, select:focus { border-color: #0d6efd; background: white; }
+  .btn {
+    padding: 14px 22px; border: none; border-radius: 10px;
+    font-size: 15px; font-weight: bold; cursor: pointer; transition: .2s;
+  }
+  .btn-primary { background: #0d6efd; color: white; width: 100%; }
+  .btn-primary:active { background: #0a58ca; }
+  .btn-danger { background: #dc3545; color: white; }
+  .btn-danger:active { background: #b02a37; }
+  .btn-success { background: #198754; color: white; }
+  .btn-success:active { background: #146c43; }
+  .btn-whatsapp { background: #25d366; color: white; }
+  .btn-warning { background: #fd7e14; color: white; }
+  .btn-warning:active { background: #d9660b; }
+  .btn-sm { padding: 9px 14px; font-size: 13px; border-radius: 8px; }
+
+  /* قائمة المرضى */
+  .patient-list { display: flex; flex-direction: column; gap: 10px; }
+  .patient-card {
+    background: white; padding: 14px; border-radius: 12px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.06);
+    display: flex; flex-direction: column; gap: 12px;
+    border-right: 5px solid #0d6efd;
+  }
+  @media(min-width:600px){
+    .patient-card { flex-direction: row; align-items: center; justify-content: space-between; }
+  }
+  .patient-card.emergency { border-right-color: #dc3545; background: #fff5f5; }
+  .patient-card.done { border-right-color: #198754; opacity: .85; }
+  .patient-card.revisit { border-right-color: #fd7e14; background: #fff8f0; }
+  .patient-info h3 { font-size: 15px; margin-bottom: 4px; }
+  .patient-info p { font-size: 12px; color: #666; }
+  .badge {
+    display: inline-block; padding: 4px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: bold; margin-top: 6px;
+  }
+  .badge-turn { background: #e7f1ff; color: #0d6efd; }
+  .badge-emergency { background: #f8d7da; color: #dc3545; }
+  .badge-done { background: #d1e7dd; color: #146c43; }
+  .badge-revisit { background: #ffe5cc; color: #d9660b; }
+  .patient-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  @media(min-width:600px){ .patient-actions { flex-wrap: nowrap; } }
+
+  .empty { text-align: center; padding: 40px 20px; color: #999; background: white; border-radius: 12px; font-size: 14px; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(120px);
+    background: #198754; color: white; padding: 14px 22px; border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,.25); transition: .3s; z-index: 1000;
+    max-width: 92%; text-align: center; font-size: 14px; font-weight: bold;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.error { background: #dc3545; }
+  .toast.info { background: #0d6efd; }
+
+  /* Modal */
+  .modal-bg {
+    position: fixed; inset: 0; background: rgba(0,0,0,.5);
+    display: none; align-items: center; justify-content: center;
+    z-index: 2000; padding: 15px;
+  }
+  .modal-bg.show { display: flex; }
+  .modal {
+    background: white; border-radius: 15px; padding: 20px; max-width: 400px; width: 100%;
+    text-align: center;
+  }
+  .modal h3 { color: #0d6efd; margin-bottom: 12px; font-size: 18px; }
+  .modal p { color: #555; margin-bottom: 15px; line-height: 1.6; font-size: 14px; }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-actions .btn { flex: 1; }
+
+  /* Search box */
+  .search-box {
+    background: white; padding: 12px 15px; border-radius: 12px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.06); margin-bottom: 15px;
+  }
+  .search-box input { border: 2px solid #e3e8ef; }
+  .search-box input:focus { border-color: #0d6efd; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>🏥 نظام حجز العيادة</h1>
+    <p>إدارة المرضى والدور والرسائل التلقائية</p>
+  </header>
+
+  <!-- رقم العيادة الثابت -->
+  <div class="clinic-bar">
+    <label>📱 رقم العيادة (واتساب):</label>
+    <input type="tel" id="clinicPhone" placeholder="مثال: 201012345678" inputmode="tel" />
+    <button class="save-btn" onclick="saveClinicPhone()">💾 حفظ</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat-card"><div class="num" id="statTotal">0</div><div class="label">إجمالي المرضى</div></div>
+    <div class="stat-card orange"><div class="num" id="statWaiting">0</div><div class="label">في الانتظار</div></div>
+    <div class="stat-card green"><div class="num" id="statDone">0</div><div class="label">تم الكشف</div></div>
+    <div class="stat-card"><div class="num" id="statCurrent">-</div><div class="label">الدور الحالي</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('booking', this)">📝 الحجز</button>
+    <button class="tab-btn" onclick="switchTab('examination', this)">🩺 الكشف</button>
+    <button class="tab-btn" onclick="switchTab('revisit', this)">🔁 إعادة كشف</button>
+  </div>
+
+  <!-- قسم الحجز -->
+  <div id="section-booking" class="section active">
+    <div class="form-box">
+      <h2>➕ إضافة مريض جديد</h2>
+      <div class="form-row">
+        <input type="text" id="pName" placeholder="اسم المريض" autocomplete="off" />
+        <input type="tel" id="pPhone" placeholder="رقم موبايل المريض" inputmode="tel" autocomplete="off" />
+      </div>
+      <div class="form-row">
+        <select id="pType">
+          <option value="regular">حجز عادي</option>
+          <option value="emergency">🚨 حالة طارئة (أولوية)</option>
+        </select>
+        <button class="btn btn-primary" onclick="addPatient()">➕ حجز وإعطاء دور</button>
+      </div>
+    </div>
+    <div class="patient-list" id="bookingList"></div>
+  </div>
+
+  <!-- قسم الكشف -->
+  <div id="section-examination" class="section">
+    <div class="patient-list" id="examList"></div>
+  </div>
+
+  <!-- قسم إعادة الكشف -->
+  <div id="section-revisit" class="section">
+    <div class="search-box">
+      <input type="text" id="searchRevisit" placeholder="🔍 ابحث باسم المريض أو رقم الموبايل..." oninput="renderRevisit()" />
+    </div>
+    <div class="patient-list" id="revisitList"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Modal تأكيد الرسالة -->
+<div class="modal-bg" id="msgModal">
+  <div class="modal">
+    <h3>📩 إرسال رسالة تنبيه</h3>
+    <p id="msgPreview"></p>
+    <div class="modal-actions">
+      <button class="btn btn-whatsapp" onclick="confirmSendWA()">📲 إرسال واتساب</button>
+      <button class="btn btn-danger" onclick="closeModal()">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================
+   إدارة البيانات (localStorage)
+============================================ */
+const STORAGE_KEY = 'clinic_patients_v1';
+const TURN_KEY = 'clinic_nextTurn';
+const NOTIFIED_KEY = 'clinic_notified';
+const CLINIC_PHONE_KEY = 'clinic_phone';
+const ALERT_THRESHOLD = 4;
+
+let patients = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+let nextTurn = parseInt(localStorage.getItem(TURN_KEY)) || 1;
+let notified = JSON.parse(localStorage.getItem(NOTIFIED_KEY)) || [];
+let clinicPhone = localStorage.getItem(CLINIC_PHONE_KEY) || '';
+let pendingMessage = null;
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(patients));
+  localStorage.setItem(TURN_KEY, nextTurn);
+  localStorage.setItem(NOTIFIED_KEY, JSON.stringify(notified));
+}
+
+/* ============================================
+   رقم العيادة
+============================================ */
+function saveClinicPhone() {
+  let phone = document.getElementById('clinicPhone').value.trim().replace(/\s+/g, '');
+  if (!phone) return showToast('❌ اكتب رقم العيادة', 'error');
+  if (phone.startsWith('0')) phone = '20' + phone.substring(1);
+  else if (phone.startsWith('+')) phone = phone.substring(1);
+  clinicPhone = phone;
+  localStorage.setItem(CLINIC_PHONE_KEY, clinicPhone);
+  document.getElementById('clinicPhone').value = clinicPhone;
+  showToast('✅ تم حفظ رقم العيادة: ' + clinicPhone, 'info');
+}
+
+/* ============================================
+   التبويبات
+============================================ */
+function switchTab(name, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('section-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  render();
+  if (name === 'revisit') renderRevisit();
+}
+
+/* ============================================
+   إضافة مريض جديد
+============================================ */
+function addPatient() {
+  const name = document.getElementById('pName').value.trim();
+  let phone = document.getElementById('pPhone').value.trim().replace(/\s+/g, '');
+  const type = document.getElementById('pType').value;
+
+  if (!name) return showToast('❌ اكتب اسم المريض', 'error');
+  if (!phone || phone.length < 8) return showToast('❌ رقم الموبايل غير صحيح', 'error');
+
+  if (phone.startsWith('0')) phone = '20' + phone.substring(1);
+  else if (phone.startsWith('+')) phone = phone.substring(1);
+
+  const patient = {
+    id: Date.now(),
+    name,
+    phone,
+    type,
+    turn: nextTurn++,
+    status: 'waiting',
+    isRevisit: false,
+    createdAt: new Date().toLocaleString('ar-EG')
+  };
+
+  patients.push(patient);
+  save();
+
+  document.getElementById('pName').value = '';
+  document.getElementById('pPhone').value = '';
+  document.getElementById('pType').value = 'regular';
+
+  showToast(`✅ تم حجز ${name} — الدور رقم ${patient.turn}`, 'info');
+  checkAndSendAlerts();
+  render();
+}
+
+/* ============================================
+   قائمة الانتظار
+============================================ */
+function getWaitingList() {
+  return patients
+    .filter(p => p.status === 'waiting')
+    .sort((a, b) => {
+      if (a.type === 'emergency' && b.type !== 'emergency') return -1;
+      if (b.type === 'emergency' && a.type !== 'emergency') return 1;
+      return a.turn - b.turn;
+    });
+}
+
+function getCurrentTurn() {
+  const waiting = getWaitingList();
+  return waiting.length ? waiting[0] : null;
+}
+
+/* ============================================
+   إرسال التنبيهات تلقائياً من رقم العيادة
+============================================ */
+function checkAndSendAlerts() {
+  const waiting = getWaitingList();
+  if (!waiting.length) return;
+
+  waiting.forEach((patient, index) => {
+    const ahead = index;
+    if (ahead > 0 && ahead <= ALERT_THRESHOLD && !notified.includes(patient.id)) {
+      const msg = buildAlertMessage(patient, ahead);
+      // الإرسال تلقائياً من رقم العيادة الثابت
+      autoSendMessage(patient.phone, msg);
+      notified.push(patient.id);
+      save();
+      showToast(`📩 أُرسلت رسالة لـ ${patient.name} (أمامه ${ahead})`, 'info');
+    }
+  });
+
+  notified = notified.filter(id => patients.some(p => p.id === id && p.status === 'waiting'));
+  save();
+}
+
+function buildAlertMessage(patient, ahead) {
+  return `مرحباً ${patient.name} 👋\n\nدورك في العيادة قريب جداً.\nأمامك ${ahead} ${ahead === 1 ? 'حالة' : 'حالات'} فقط.\nمن فضلك توجه للعيادة الآن.\n\n🎫 رقم دورك: ${patient.turn}\n📱 للتواصل: ${clinicPhone}`;
+}
+
+/* الإرسال التلقائي - يفتح واتساب برسالة جاهزة من رقم العيادة */
+function autoSendMessage(patientPhone, message) {
+  // ملاحظة: الإرسال التلقائي 100% يحتاج API خارجي (UltraMsg/Twilio)
+  // حالياً نفتح واتساب برسالة جاهزة والإرسال بضغطة واحدة
+  const url = `https://wa.me/${patientPhone}?text=${encodeURIComponent(message)}`;
+  window.open(url, '_blank');
+}
+
+/* ============================================
+   إعادة الكشف
+============================================ */
+function renderRevisit() {
+  const search = document.getElementById('searchRevisit').value.trim().toLowerCase();
+  const list = document.getElementById('revisitList');
+  
+  // المرضى اللي اتكشفوا سابقاً (done)
+  let donePatients = patients.filter(p => p.status === 'done');
+  
+  if (search) {
+    donePatients = donePatients.filter(p => 
+      p.name.toLowerCase().includes(search) || p.phone.includes(search)
+    );
+  }
+
+  // استبعاد المكرر (نفس الرقم) - نعرض أحدث زيارة
+  const uniqueByPhone = {};
+  donePatients.sort((a, b) => b.id - a.id).forEach(p => {
+    if (!uniqueByPhone[p.phone]) uniqueByPhone[p.phone] = p;
+  });
+  const uniqueList = Object.values(uniqueByPhone);
+
+  if (!uniqueList.length) {
+    list.innerHTML = '<div class="empty">لا يوجد مرضى سابقون — بعد إنهاء كشف مريض سيظهر هنا</div>';
+    return;
+  }
+
+  list.innerHTML = uniqueList.map(p => `
+    <div class="patient-card revisit">
+      <div class="patient-info">
+        <h3>${p.name}</h3>
+        <p>📞 ${p.phone}</p>
+        <p style="font-size:11px;color:#999;">آخر زيارة: ${p.doneAt || p.createdAt}</p>
+      </div>
+      <div class="patient-actions">
+        <button class="btn btn-warning btn-sm" onclick="createRevisit(${p.id})">🔁 إعادة كشف</button>
+        <button class="btn btn-danger btn-sm" onclick="deletePatient(${p.id})">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function createRevisit(oldId) {
+  const old = patients.find(x => x.id === oldId);
+  if (!old) return;
+
+  const newPatient = {
+    id: Date.now(),
+    name: old.name,
+    phone: old.phone,
+    type: 'regular',
+    turn: nextTurn++,
+    status: 'waiting',
+    isRevisit: true,
+    createdAt: new Date().toLocaleString('ar-EG')
+  };
+
+  patients.push(newPatient);
+  save();
+  showToast(`🔁 تم إعادة كشف ${old.name} — الدور #${newPatient.turn}`, 'info');
+  checkAndSendAlerts();
+  render();
+  renderRevisit();
+}
+
+/* ============================================
+   الرسائل اليدوية
+============================================ */
+function sendManualMessage(id) {
+  const p = patients.find(x => x.id === id);
+  if (!p) return;
+  const waiting = getWaitingList();
+  const ahead = waiting.findIndex(x => x.id === id);
+  const msg = buildAlertMessage(p, ahead);
+  pendingMessage = { phone: p.phone, msg };
+  document.getElementById('msgPreview').textContent = msg;
+  document.getElementById('msgModal').classList.add('show');
+}
+
+function confirmSendWA() {
+  if (pendingMessage) autoSendMessage(pendingMessage.phone, pendingMessage.msg);
+  closeModal();
+}
+
+function closeModal() {
+  document.getElementById('msgModal').classList.remove('show');
+  pendingMessage = null;
+}
+
+/* ============================================
+   إنهاء / حذف
+============================================ */
+function markDone(id) {
+  const p = patients.find(x => x.id === id);
+  if (!p) return;
+  p.status = 'done';
+  p.doneAt = new Date().toLocaleString('ar-EG');
+  save();
+  showToast(`✅ تم إنهاء كشف ${p.name}`, 'info');
+  checkAndSendAlerts();
+  render();
+}
+
+function deletePatient(id) {
+  if (!confirm('تأكيد حذف المريض من القائمة؟')) return;
+  patients = patients.filter(p => p.id !== id);
+  notified = notified.filter(n => n !== id);
+  save();
+  render();
+  renderRevisit();
+}
+
+/* ============================================
+   رسم الواجهة
+============================================ */
+function render() {
+  document.getElementById('statTotal').textContent = patients.length;
+  document.getElementById('statWaiting').textContent = patients.filter(p => p.status === 'waiting').length;
+  document.getElementById('statDone').textContent = patients.filter(p => p.status === 'done').length;
+  const cur = getCurrentTurn();
+  document.getElementById('statCurrent').textContent = cur ? cur.turn : '-';
+
+  const bookingList = document.getElementById('bookingList');
+  const waiting = getWaitingList();
+  bookingList.innerHTML = waiting.length
+    ? waiting.map(p => patientCard(p)).join('')
+    : '<div class="empty">لا يوجد مرضى في الانتظار</div>';
+
+  const examList = document.getElementById('examList');
+  const allSorted = [...patients].sort((a, b) => {
+    if (a.status !== b.status) return a.status === 'waiting' ? -1 : 1;
+    return a.turn - b.turn;
+  });
+  examList.innerHTML = allSorted.length
+    ? allSorted.map(p => patientCard(p, true)).join('')
+    : '<div class="empty">لا يوجد مرضى بعد</div>';
+}
+
+function patientCard(p, showDone) {
+  const aheadCount = p.status === 'waiting'
+    ? getWaitingList().findIndex(x => x.id === p.id)
+    : -1;
+
+  let statusBadge = '';
+  if (p.status === 'done') {
+    statusBadge = `<span class="badge badge-done">✅ تم الكشف — ${p.doneAt || ''}</span>`;
+  } else if (p.type === 'emergency') {
+    statusBadge = `<span class="badge badge-emergency">🚨 طارئ — أمامه ${aheadCount}</span>`;
+  } else if (p.isRevisit) {
+    statusBadge = `<span class="badge badge-revisit">🔁 إعادة كشف — أمامه ${aheadCount}</span>`;
+  } else {
+    statusBadge = `<span class="badge badge-turn">⏳ أمامه ${aheadCount} حالة</span>`;
+  }
+
+  let actions = '';
+  if (p.status === 'waiting') {
+    actions = `
+      <button class="btn btn-whatsapp btn-sm" onclick="sendManualMessage(${p.id})">📲 رسالة</button>
+      <button class="btn btn-success btn-sm" onclick="markDone(${p.id})">✅ إنهاء</button>
+      <button class="btn btn-danger btn-sm" onclick="deletePatient(${p.id})">🗑️</button>
+    `;
+  } else {
+    actions = `
+      <button class="btn btn-warning btn-sm" onclick="createRevisit(${p.id})">🔁 إعادة</button>
+      <button class="btn btn-danger btn-sm" onclick="deletePatient(${p.id})">🗑️</button>
+    `;
+  }
+
+  return `
+    <div class="patient-card ${p.type === 'emergency' ? 'emergency' : ''} ${p.status === 'done' ? 'done' : ''} ${p.isRevisit && p.status === 'waiting' ? 'revisit' : ''}">
+      <div class="patient-info">
+        <h3>${p.name} — دور #${p.turn}</h3>
+        <p>📞 ${p.phone} • ${p.createdAt}</p>
+        ${statusBadge}
+      </div>
+      <div class="patient-actions">${actions}</div>
+    </div>
+  `;
+}
+
+/* ============================================
+   Toast
+============================================ */
+let toastTimer;
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+/* ============================================
+   تشغيل
+============================================ */
+document.getElementById('clinicPhone').value = clinicPhone;
+render();
+setTimeout(checkAndSendAlerts, 1000);
+</script>
+</body>
+</html>
